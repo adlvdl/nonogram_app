@@ -107,6 +107,7 @@ body {
 .nonogram-table {
   border-collapse: collapse;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Column hint cells (top area) */

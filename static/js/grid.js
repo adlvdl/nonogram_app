@@ -8,11 +8,22 @@
 
 "use strict";
 
+// Drag state: tracks whether the mouse button is held and what state to apply.
+// dragTargetState is fixed for the duration of a drag so all cells in one
+// stroke receive the same state (the one the first cell cycled to).
+let isMouseDown = false;
+let dragTargetState = null;
+
+document.addEventListener("mouseup", () => {
+  isMouseDown = false;
+  dragTargetState = null;
+});
+
 /**
  * Build the nonogram grid table and insert it into #nonogram-container.
  *
  * @param {Object} puzzle  - API response: { width, height, row_hints, col_hints }
- * @param {Function} onStateChange - called after every cell click
+ * @param {Function} onStateChange - called after every cell state change
  */
 function buildGrid(puzzle, onStateChange) {
   const container = document.getElementById("nonogram-container");
@@ -92,9 +103,19 @@ function buildGrid(puzzle, onStateChange) {
       if (row % 5 === 0) td.classList.add("border-top");
       if (col % 5 === 0) td.classList.add("border-left");
 
-      td.addEventListener("click", () => {
-        cycleState(td);
+      td.addEventListener("mousedown", (e) => {
+        e.preventDefault(); // prevent text selection while dragging
+        isMouseDown = true;
+        dragTargetState = nextState(td.dataset.state);
+        applyState(td, dragTargetState);
         onStateChange();
+      });
+
+      td.addEventListener("mouseover", () => {
+        if (isMouseDown && dragTargetState !== null) {
+          applyState(td, dragTargetState);
+          onStateChange();
+        }
       });
 
       tr.appendChild(td);
@@ -107,15 +128,24 @@ function buildGrid(puzzle, onStateChange) {
 }
 
 /**
- * Cycle a cell through: empty -> filled -> crossed -> empty.
+ * Return the next state in the cycle: empty -> filled -> crossed -> empty.
+ *
+ * @param {string} current
+ * @returns {string}
+ */
+function nextState(current) {
+  const states = ["empty", "filled", "crossed"];
+  return states[(states.indexOf(current) + 1) % states.length];
+}
+
+/**
+ * Set a cell to an explicit state.
  *
  * @param {HTMLTableCellElement} cell
+ * @param {string} state
  */
-function cycleState(cell) {
-  const states = ["empty", "filled", "crossed"];
-  const current = cell.dataset.state;
-  const next = states[(states.indexOf(current) + 1) % states.length];
-  cell.dataset.state = next;
+function applyState(cell, state) {
+  cell.dataset.state = state;
 }
 
 /**
