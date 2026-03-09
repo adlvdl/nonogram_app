@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nonogram Puzzles</title>
+  <link rel="stylesheet" href="/static/css/nonogram.css">
+</head>
+<body>
+  <header class="page-header">
+    <h1>Nonogram Puzzles</h1>
+    <p>Choose a puzzle to solve.</p>
+  </header>
+
+  <main>
+    <div id="puzzle-list" class="puzzle-list">
+      <p class="loading">Loading puzzles...</p>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    fetch("/api/puzzles")
+      .then((res) => res.json())
+      .then((data) => {
+        const container = document.getElementById("puzzle-list");
+        container.innerHTML = "";
+
+        if (!data.puzzles || data.puzzles.length === 0) {
+          container.innerHTML = "<p class=\"error-msg\">No puzzles found.</p>";
+          return;
+        }
+
+        data.puzzles.forEach((name) => {
+          const card = document.createElement("button");
+          card.className = "puzzle-card";
+
+          const parts = name.split("/");
+          const displayName = parts[parts.length - 1]
+            .replace(/_w\d+_h\d+$/, "")   // strip dimension suffix
+            .replace(/_/g, " ");
+
+          const category = parts.length > 1 ? parts[0] : "";
+
+          card.innerHTML =
+            `<div class="puzzle-name">${displayName}</div>` +
+            (category ? `<div class="puzzle-meta">${category}</div>` : "");
+
+          card.addEventListener("click", () => {
+            window.location.href = `/puzzle?name=${encodeURIComponent(name)}`;
+          });
+
+          container.appendChild(card);
+        });
+      })
+      .catch(() => {
+        document.getElementById("puzzle-list").innerHTML =
+          "<p class=\"error-msg\">Failed to load puzzles.</p>";
+      });
+  </script>
+</body>
+</html>

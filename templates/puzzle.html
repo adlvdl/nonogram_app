@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nonogram</title>
+  <link rel="stylesheet" href="/static/css/nonogram.css">
+</head>
+<body>
+  <main class="puzzle-page">
+    <a href="/" class="back-link">Back to puzzles</a>
+
+    <h1 id="puzzle-title" class="puzzle-title"></h1>
+
+    <p id="puzzle-loading" class="loading">Loading puzzle...</p>
+    <p id="puzzle-error" class="error-msg"></p>
+
+    <div class="nonogram-wrapper">
+      <div id="nonogram-container"></div>
+    </div>
+  </main>
+
+  <!-- Congratulations overlay -->
+  <div id="congrats-overlay" class="overlay">
+    <div class="congrats-box">
+      <h2>Solved!</h2>
+      <p>You completed the nonogram correctly.</p>
+      <button id="btn-play-again" class="btn-primary">Play again</button>
+    </div>
+  </div>
+
+  <script src="/static/js/grid.js"></script>
+  <script src="/static/js/solution_checker.js"></script>
+  <script src="/static/js/main.js"></script>
+</body>
+</html>
