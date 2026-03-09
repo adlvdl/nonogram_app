@@ -239,6 +239,13 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.congrats-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .btn-primary {
   background: #1a1a1a;
   color: #fff;
@@ -248,8 +255,28 @@ body {
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.15s;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .btn-primary:hover {
   background: #333;
+}
+
+.btn-secondary {
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid #1a1a1a;
+  border-radius: 6px;
+  padding: 0.65rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-secondary:hover {
+  background: #1a1a1a;
+  color: #fff;
 }

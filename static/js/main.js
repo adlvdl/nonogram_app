@@ -35,7 +35,7 @@
         }
       });
 
-      // Dismiss popup and reset grid on "Play again"
+      // Dismiss popup and reset grid on "Reset puzzle"
       document.getElementById("btn-play-again").addEventListener("click", () => {
         hideCongratsPopup();
         buildGrid(puzzle, () => {
