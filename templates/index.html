@@ -37,15 +37,22 @@
           card.className = "puzzle-card";
 
           const parts = name.split("/");
-          const displayName = parts[parts.length - 1]
-            .replace(/_w\d+_h\d+$/, "")   // strip dimension suffix
+          const filename = parts[parts.length - 1];
+
+          const dimMatch = filename.match(/_w(\d+)_h(\d+)$/);
+          const size = dimMatch ? `${dimMatch[1]}×${dimMatch[2]}` : "";
+
+          const displayName = filename
+            .replace(/_w\d+_h\d+$/, "")
             .replace(/_/g, " ");
 
           const category = parts.length > 1 ? parts[0] : "";
 
+          const meta = [category, size].filter(Boolean).join(" · ");
+
           card.innerHTML =
             `<div class="puzzle-name">${displayName}</div>` +
-            (category ? `<div class="puzzle-meta">${category}</div>` : "");
+            (meta ? `<div class="puzzle-meta">${meta}</div>` : "");
 
           card.addEventListener("click", () => {
             window.location.href = `/puzzle?name=${encodeURIComponent(name)}`;
