@@ -199,6 +199,12 @@ body {
   transform: translate(-50%, -50%) rotate(-45deg);
 }
 
+/* Completed row/column hint — greyed and struck through */
+.hint-done .hint-number {
+  color: #bbb;
+  text-decoration: line-through;
+}
+
 /* Corner spacer */
 .corner-cell {
   /* empty top-left corner */

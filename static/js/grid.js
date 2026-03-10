@@ -53,6 +53,7 @@ function buildGrid(puzzle, onStateChange) {
       const offset = maxColHintRows - hints.length;
       const td = document.createElement("td");
       td.className = "col-hint-cell";
+      td.dataset.hintCol = String(col);
 
       if (hintRow >= offset) {
         const value = hints[hintRow - offset];
@@ -78,6 +79,7 @@ function buildGrid(puzzle, onStateChange) {
     for (let hc = 0; hc < maxRowHintCols; hc++) {
       const td = document.createElement("td");
       td.className = "row-hint-cell";
+      td.dataset.hintRow = String(row);
 
       const idx = hc - hintPad;
       if (idx >= 0) {
@@ -108,12 +110,14 @@ function buildGrid(puzzle, onStateChange) {
         isMouseDown = true;
         dragTargetState = nextState(td.dataset.state);
         applyState(td, dragTargetState);
+        checkLineCompletion(puzzle);
         onStateChange();
       });
 
       td.addEventListener("mouseover", () => {
         if (isMouseDown && dragTargetState !== null) {
           applyState(td, dragTargetState);
+          checkLineCompletion(puzzle);
           onStateChange();
         }
       });
@@ -167,4 +171,103 @@ function readUserGrid(puzzle) {
     grid.push(rowData);
   }
   return grid;
+}
+
+/**
+ * Compute run-length encoding of filled cells in a line.
+ * Returns [0] for an all-empty line, matching nonogram convention.
+ *
+ * @param {boolean[]} cells
+ * @returns {number[]}
+ */
+function computeLineRLE(cells) {
+  const runs = [];
+  let count = 0;
+  for (const filled of cells) {
+    if (filled) {
+      count++;
+    } else if (count > 0) {
+      runs.push(count);
+      count = 0;
+    }
+  }
+  if (count > 0) runs.push(count);
+  return runs.length === 0 ? [0] : runs;
+}
+
+function arraysEqual(a, b) {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+/**
+ * Check every row and column for completion and update the DOM accordingly.
+ *
+ * A line is "complete" when its filled cells produce the same run-length
+ * encoding as its hint — regardless of whether the fill is correct. When
+ * complete: remaining empty cells are auto-crossed and the hint is greyed.
+ * Auto-crossed cells are tracked via data-auto so they can be cleared and
+ * recomputed on the next user action.
+ *
+ * @param {Object} puzzle - { width, height, row_hints, col_hints }
+ */
+function checkLineCompletion(puzzle) {
+  // Clear previous auto state so we recompute from scratch each time.
+  document.querySelectorAll('.puzzle-cell[data-auto="true"]').forEach((cell) => {
+    applyState(cell, "empty");
+    delete cell.dataset.auto;
+  });
+  document.querySelectorAll(".hint-done").forEach((td) => {
+    td.classList.remove("hint-done");
+  });
+
+  // Check rows then columns. Running rows first means any cells auto-crossed
+  // by a completed row are already "crossed" (not "filled") when the column
+  // check runs, giving correct column RLEs without a second pass.
+  for (let row = 0; row < puzzle.height; row++) {
+    const cells = [];
+    for (let col = 0; col < puzzle.width; col++) {
+      const cell = document.querySelector(
+        `.puzzle-cell[data-row="${row}"][data-col="${col}"]`
+      );
+      cells.push(cell ? cell.dataset.state === "filled" : false);
+    }
+    if (arraysEqual(computeLineRLE(cells), puzzle.row_hints[row])) {
+      document
+        .querySelectorAll(`.row-hint-cell[data-hint-row="${row}"]`)
+        .forEach((td) => td.classList.add("hint-done"));
+      for (let col = 0; col < puzzle.width; col++) {
+        const cell = document.querySelector(
+          `.puzzle-cell[data-row="${row}"][data-col="${col}"]`
+        );
+        if (cell && cell.dataset.state === "empty") {
+          applyState(cell, "crossed");
+          cell.dataset.auto = "true";
+        }
+      }
+    }
+  }
+
+  for (let col = 0; col < puzzle.width; col++) {
+    const cells = [];
+    for (let row = 0; row < puzzle.height; row++) {
+      const cell = document.querySelector(
+        `.puzzle-cell[data-row="${row}"][data-col="${col}"]`
+      );
+      cells.push(cell ? cell.dataset.state === "filled" : false);
+    }
+    if (arraysEqual(computeLineRLE(cells), puzzle.col_hints[col])) {
+      document
+        .querySelectorAll(`.col-hint-cell[data-hint-col="${col}"]`)
+        .forEach((td) => td.classList.add("hint-done"));
+      for (let row = 0; row < puzzle.height; row++) {
+        const cell = document.querySelector(
+          `.puzzle-cell[data-row="${row}"][data-col="${col}"]`
+        );
+        if (cell && cell.dataset.state === "empty") {
+          applyState(cell, "crossed");
+          cell.dataset.auto = "true";
+        }
+      }
+    }
+  }
 }
