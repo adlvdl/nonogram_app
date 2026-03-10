@@ -11,6 +11,7 @@
     <a href="/" class="back-link">Back to puzzles</a>
 
     <h1 id="puzzle-title" class="puzzle-title"></h1>
+    <p id="puzzle-timer" class="puzzle-timer">0:00</p>
 
     <p id="puzzle-loading" class="loading">Loading puzzle...</p>
     <p id="puzzle-error" class="error-msg"></p>
@@ -24,7 +25,8 @@
   <div id="congrats-overlay" class="overlay">
     <div class="congrats-box">
       <h2>Solved!</h2>
-      <p>You completed the nonogram correctly.</p>
+      <p id="congrats-time"></p>
+      <p id="congrats-best" class="congrats-best-time"></p>
       <div class="congrats-actions">
         <button id="btn-play-again" class="btn-primary">Reset puzzle</button>
         <a href="/" class="btn-secondary">Back to puzzles</a>
@@ -32,6 +34,8 @@
     </div>
   </div>
 
+  <script src="/static/js/best_times.js"></script>
+  <script src="/static/js/timer.js"></script>
   <script src="/static/js/grid.js"></script>
   <script src="/static/js/solution_checker.js"></script>
   <script src="/static/js/main.js"></script>

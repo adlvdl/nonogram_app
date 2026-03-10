@@ -28,22 +28,28 @@
     .then((puzzle) => {
       document.getElementById("puzzle-loading").style.display = "none";
 
-      buildGrid(puzzle, () => {
+      function onStateChange() {
         const userGrid = readUserGrid(puzzle);
         if (checkSolution(puzzle.solution, userGrid)) {
+          const elapsed = stopTimer();
+          const isNewBest = saveBestTime(puzzleName, elapsed);
+          document.getElementById("congrats-time").textContent =
+            `Solved in ${formatTime(elapsed)}`;
+          const best = getBestTime(puzzleName);
+          document.getElementById("congrats-best").textContent =
+            isNewBest ? "New best time!" : `Best: ${formatTime(best)}`;
           showCongratsPopup();
         }
-      });
+      }
+
+      buildGrid(puzzle, onStateChange);
+      startTimer();
 
       // Dismiss popup and reset grid on "Reset puzzle"
       document.getElementById("btn-play-again").addEventListener("click", () => {
         hideCongratsPopup();
-        buildGrid(puzzle, () => {
-          const userGrid = readUserGrid(puzzle);
-          if (checkSolution(puzzle.solution, userGrid)) {
-            showCongratsPopup();
-          }
-        });
+        buildGrid(puzzle, onStateChange);
+        startTimer();
       });
     })
     .catch((err) => {
