@@ -28,15 +28,21 @@ The goal is a composable, mobile-ready puzzle platform built in Python that can 
 
 ---
 
-## Current State (v0.1 MVP)
+## Current State
 
-The MVP is fully functional for black-and-white nonograms.
+Fully functional for black-and-white nonograms.
 
 - Load any BW PNG from the `nonograms/bw/` folder
 - Automatically compute row and column hints from pixel data
 - Display a correctly sized interactive grid with hints on the edges
-- Click cells to cycle through three states: **empty → filled → crossed (X)**
-- Detect when the solution is complete and show a congratulations popup
+- Click or click-and-drag cells to cycle through three states: **empty → filled → crossed (X)**
+- Completed rows and columns are detected automatically: remaining empty cells are crossed out and the hint is greyed with a strikethrough
+- Puzzle timer starts on load and stops when the correct solution is submitted
+- Best solve times are stored per puzzle in browser localStorage
+- Puzzle selection screen shows the best time for each puzzle (or "Unsolved")
+- Solved puzzles display a pixel thumbnail of their solution on the selection screen
+- Puzzle names are shown as a stable 6-digit ID rather than the descriptive filename, so the name cannot serve as a hint
+- Detect when the solution is complete and show a congratulations popup with solve time and best-time status
 - Reset and replay any puzzle
 
 One puzzle is included: a 5×5 arrow (`nonograms/bw/arrow_w5_h5.png`). Adding new puzzles requires only dropping a PNG into the folder.
@@ -59,9 +65,11 @@ nonogram_app/
 ├── static/
 │   ├── css/nonogram.css        Styles (grid, hints, X marks, congrats overlay)
 │   └── js/
-│       ├── grid.js             Builds the DOM table, manages cell state cycling
+│       ├── grid.js             Builds the DOM table, manages cell state and line completion
 │       ├── solution_checker.js Client-side solution comparison and popup control
-│       └── main.js             Bootstrap: fetches API, wires grid + checker
+│       ├── timer.js            Puzzle solve timer (start/stop, M:SS display)
+│       ├── best_times.js       localStorage wrapper for best times and solution cache
+│       └── main.js             Bootstrap: fetches API, wires grid + checker + timer
 ├── tests/                      36 tests covering all backend modules and API
 ├── demo/
 │   └── demo_arrow.py           Runnable demo: prints hints and Polars frame to stdout
@@ -168,8 +176,11 @@ For example: `heart_w10_h10.png`. The app will pick it up automatically on next 
 ## Roadmap
 
 - [ ] Add more BW puzzle images
-- [ ] Highlight solved rows/columns in the hint area
-- [ ] Puzzle timer
+- [x] Highlight solved rows/columns in the hint area
+- [x] Puzzle timer with best-time tracking per puzzle
+- [x] Show solution thumbnail and best time on the selection screen
+- [x] Obfuscate puzzle names so the filename cannot serve as a hint
 - [ ] Right-click / long-press to place X directly
 - [ ] Color nonogram support (multi-channel PNG pipeline)
 - [ ] Mobile-optimised layout
+- [ ] Server-side persistence — move best times and solve history to a SQLite store so progress is preserved across browsers and devices
