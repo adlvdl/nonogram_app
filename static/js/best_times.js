@@ -1,10 +1,13 @@
 /**
- * best_times.js — localStorage wrapper for per-puzzle best solve times.
+ * best_times.js — localStorage wrapper for per-puzzle best solve times
+ * and cached solution grids.
  *
  * Exports:
  *   getBestTime(puzzleName)        -> number | null  (seconds)
  *   saveBestTime(puzzleName, secs) -> boolean  (true if new best)
  *   formatBestTime(puzzleName)     -> string   ("M:SS" or "Unsolved")
+ *   saveSolution(puzzleName, solution) -> void
+ *   getSolution(puzzleName)            -> boolean[][] | null
  */
 
 "use strict";
@@ -61,4 +64,37 @@ function formatBestTime(puzzleName) {
   const m = Math.floor(t / 60);
   const s = t % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+const _SOLUTIONS_KEY = "nonogram-solutions";
+
+/**
+ * Cache the solution grid for a puzzle. Called once on first correct solve.
+ *
+ * @param {string} puzzleName
+ * @param {boolean[][]} solution
+ */
+function saveSolution(puzzleName, solution) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(_SOLUTIONS_KEY) || "{}");
+    stored[puzzleName] = solution;
+    localStorage.setItem(_SOLUTIONS_KEY, JSON.stringify(stored));
+  } catch {
+    // localStorage may be unavailable or full
+  }
+}
+
+/**
+ * Return the cached solution grid for a puzzle, or null if unsolved.
+ *
+ * @param {string} puzzleName
+ * @returns {boolean[][]|null}
+ */
+function getSolution(puzzleName) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(_SOLUTIONS_KEY) || "{}");
+    return stored[puzzleName] || null;
+  } catch {
+    return null;
+  }
 }

@@ -32,6 +32,7 @@
         const userGrid = readUserGrid(puzzle);
         if (checkSolution(puzzle.solution, userGrid)) {
           const elapsed = stopTimer();
+          saveSolution(puzzleName, puzzle.solution);
           const isNewBest = saveBestTime(puzzleName, elapsed);
           document.getElementById("congrats-time").textContent =
             `Solved in ${formatTime(elapsed)}`;

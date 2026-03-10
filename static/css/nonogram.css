@@ -69,6 +69,13 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.puzzle-thumbnail {
+  display: block;
+  margin: 0 auto 0.75rem;
+  border: 1px solid #ddd;
+  image-rendering: pixelated;
+}
+
 .loading, .error-msg {
   padding: 2rem;
   color: #666;

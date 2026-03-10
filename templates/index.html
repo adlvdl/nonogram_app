@@ -22,6 +22,44 @@
   <script>
     "use strict";
 
+    /**
+     * Derive a stable 6-digit display ID from the puzzle's internal name.
+     * Uses a simple hash so the same puzzle always shows the same number,
+     * without revealing the descriptive filename.
+     *
+     * @param {string} name
+     * @returns {string}  e.g. "#384729"
+     */
+    function puzzleDisplayId(name) {
+      let h = 0;
+      for (let i = 0; i < name.length; i++) {
+        h = (Math.imul(31, h) + name.charCodeAt(i)) | 0;
+      }
+      return "#" + String(100000 + (Math.abs(h) % 900000));
+    }
+
+    /**
+     * Draw a solved puzzle's solution grid onto a canvas element.
+     * Each cell is rendered as a filled (dark) or empty (white) square.
+     *
+     * @param {HTMLCanvasElement} canvas
+     * @param {boolean[][]} solution
+     */
+    function renderSolutionCanvas(canvas, solution) {
+      const rows = solution.length;
+      const cols = rows > 0 ? solution[0].length : 0;
+      const cellSize = Math.max(3, Math.floor(80 / Math.max(rows, cols)));
+      canvas.width = cols * cellSize;
+      canvas.height = rows * cellSize;
+      const ctx = canvas.getContext("2d");
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          ctx.fillStyle = solution[r][c] ? "#1a1a1a" : "#fff";
+          ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
     fetch("/api/puzzles")
       .then((res) => res.json())
       .then((data) => {
@@ -39,23 +77,36 @@
 
           const parts = name.split("/");
           const filename = parts[parts.length - 1];
-
           const dimMatch = filename.match(/_w(\d+)_h(\d+)$/);
           const size = dimMatch ? `${dimMatch[1]}×${dimMatch[2]}` : "";
-
-          const displayName = filename
-            .replace(/_w\d+_h\d+$/, "")
-            .replace(/_/g, " ");
-
           const category = parts.length > 1 ? parts[0] : "";
-
-          const bestTime = formatBestTime(name);
           const meta = [category, size].filter(Boolean).join(" · ");
 
-          card.innerHTML =
-            `<div class="puzzle-name">${displayName}</div>` +
-            (meta ? `<div class="puzzle-meta">${meta}</div>` : "") +
-            `<div class="puzzle-best-time">Best: ${bestTime}</div>`;
+          // Show solution thumbnail only for puzzles the user has already solved.
+          const solution = getSolution(name);
+          if (solution) {
+            const canvas = document.createElement("canvas");
+            canvas.className = "puzzle-thumbnail";
+            renderSolutionCanvas(canvas, solution);
+            card.appendChild(canvas);
+          }
+
+          const nameDiv = document.createElement("div");
+          nameDiv.className = "puzzle-name";
+          nameDiv.textContent = puzzleDisplayId(name);
+          card.appendChild(nameDiv);
+
+          if (meta) {
+            const metaDiv = document.createElement("div");
+            metaDiv.className = "puzzle-meta";
+            metaDiv.textContent = meta;
+            card.appendChild(metaDiv);
+          }
+
+          const bestDiv = document.createElement("div");
+          bestDiv.className = "puzzle-best-time";
+          bestDiv.textContent = `Best: ${formatBestTime(name)}`;
+          card.appendChild(bestDiv);
 
           card.addEventListener("click", () => {
             window.location.href = `/puzzle?name=${encodeURIComponent(name)}`;
