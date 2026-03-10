@@ -17,8 +17,9 @@
     return;
   }
 
-  document.title = `Nonogram — ${puzzleName}`;
-  document.getElementById("puzzle-title").textContent = puzzleName;
+  const displayId = puzzleDisplayId(puzzleName);
+  document.title = `Nonogram — ${displayId}`;
+  document.getElementById("puzzle-title").textContent = displayId;
 
   fetch(`/api/nonogram/${puzzleName}`)
     .then((res) => {

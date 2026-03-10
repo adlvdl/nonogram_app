@@ -12,6 +12,21 @@
 
 "use strict";
 
+/**
+ * Derive a stable 6-digit display ID from a puzzle's internal name.
+ * The same name always produces the same number without revealing the filename.
+ *
+ * @param {string} name
+ * @returns {string}  e.g. "#384729"
+ */
+function puzzleDisplayId(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) {
+    h = (Math.imul(31, h) + name.charCodeAt(i)) | 0;
+  }
+  return "#" + String(100000 + (Math.abs(h) % 900000));
+}
+
 const _BEST_TIMES_KEY = "nonogram-best-times";
 
 /**
