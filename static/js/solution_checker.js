@@ -11,8 +11,11 @@
 /**
  * Return true when every cell in userGrid matches the solution.
  *
- * @param {boolean[][]} solution - ground truth from the API
- * @param {boolean[][]} userGrid - user's current state (filled = true)
+ * Works for both BW puzzles (boolean[][]) and color puzzles ((string|null)[][]).
+ * For color: null means empty/crossed; a hex string means that color is placed.
+ *
+ * @param {boolean[][] | (string|null)[][]} solution - ground truth from the API
+ * @param {boolean[][] | (string|null)[][]} userGrid - user's current state
  * @returns {boolean}
  */
 function checkSolution(solution, userGrid) {

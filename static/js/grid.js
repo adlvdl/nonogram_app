@@ -3,7 +3,9 @@
  *
  * Exports:
  *   buildGrid(puzzle, onStateChange) -> void
- *   readUserGrid(puzzle) -> boolean[][]
+ *   buildColorPalette(colors, container) -> void
+ *   readUserGrid(puzzle) -> boolean[][] | (string|null)[][]
+ *   activeColor -> string|null  (current selected color for color puzzles)
  */
 
 "use strict";
@@ -14,6 +16,9 @@
 let isMouseDown = false;
 let dragTargetState = null;
 
+// Active color for color puzzles. null when not in color mode.
+let activeColor = null;
+
 document.addEventListener("mouseup", () => {
   isMouseDown = false;
   dragTargetState = null;
@@ -22,7 +27,7 @@ document.addEventListener("mouseup", () => {
 /**
  * Build the nonogram grid table and insert it into #nonogram-container.
  *
- * @param {Object} puzzle  - API response: { width, height, row_hints, col_hints }
+ * @param {Object} puzzle  - API response: { width, height, row_hints, col_hints, is_color }
  * @param {Function} onStateChange - called after every cell state change
  */
 function buildGrid(puzzle, onStateChange) {
@@ -32,8 +37,8 @@ function buildGrid(puzzle, onStateChange) {
   const table = document.createElement("table");
   table.className = "nonogram-table";
 
-  const maxColHintRows = Math.max(...puzzle.col_hints.map(h => h.length));
-  const maxRowHintCols = Math.max(...puzzle.row_hints.map(h => h.length));
+  const maxColHintRows = Math.max(...puzzle.col_hints.map((h) => h.length));
+  const maxRowHintCols = Math.max(...puzzle.row_hints.map((h) => h.length));
 
   // ── Header rows: column hints ──
   for (let hintRow = 0; hintRow < maxColHintRows; hintRow++) {
@@ -56,10 +61,20 @@ function buildGrid(puzzle, onStateChange) {
       td.dataset.hintCol = String(col);
 
       if (hintRow >= offset) {
-        const value = hints[hintRow - offset];
+        const hint = hints[hintRow - offset];
         const span = document.createElement("span");
         span.className = "hint-number";
-        span.textContent = value === 0 ? "" : String(value);
+        if (puzzle.is_color) {
+          const count = hint.count;
+          const color = hint.color;
+          span.textContent = count === 0 ? "" : String(count);
+          if (color) {
+            span.style.backgroundColor = color;
+            span.style.color = contrastColor(color);
+          }
+        } else {
+          span.textContent = hint === 0 ? "" : String(hint);
+        }
         td.appendChild(span);
       }
 
@@ -83,10 +98,20 @@ function buildGrid(puzzle, onStateChange) {
 
       const idx = hc - hintPad;
       if (idx >= 0) {
-        const value = rowHints[idx];
+        const hint = rowHints[idx];
         const span = document.createElement("span");
         span.className = "hint-number";
-        span.textContent = value === 0 ? "" : String(value);
+        if (puzzle.is_color) {
+          const count = hint.count;
+          const color = hint.color;
+          span.textContent = count === 0 ? "" : String(count);
+          if (color) {
+            span.style.backgroundColor = color;
+            span.style.color = contrastColor(color);
+          }
+        } else {
+          span.textContent = hint === 0 ? "" : String(hint);
+        }
         td.appendChild(span);
       }
 
@@ -108,7 +133,9 @@ function buildGrid(puzzle, onStateChange) {
       td.addEventListener("mousedown", (e) => {
         e.preventDefault(); // prevent text selection while dragging
         isMouseDown = true;
-        dragTargetState = nextState(td.dataset.state);
+        dragTargetState = puzzle.is_color
+          ? nextColorState(td.dataset.state)
+          : nextState(td.dataset.state);
         applyState(td, dragTargetState);
         checkLineCompletion(puzzle);
         onStateChange();
@@ -132,7 +159,51 @@ function buildGrid(puzzle, onStateChange) {
 }
 
 /**
- * Return the next state in the cycle: empty -> filled -> crossed -> empty.
+ * Build a color palette selector and insert it into the given container.
+ * Each color gets a swatch button; clicking selects it as the active color.
+ *
+ * @param {string[]} colors  - hex color strings, e.g. ["#ff0000", "#0000ff"]
+ * @param {HTMLElement} container
+ */
+function buildColorPalette(colors, container) {
+  container.innerHTML = "";
+  if (colors.length === 0) return;
+
+  // Select the first color by default.
+  activeColor = colors[0];
+
+  const allSwatchValues = [...colors, "crossed"];
+
+  allSwatchValues.forEach((value) => {
+    const btn = document.createElement("button");
+    btn.dataset.color = value;
+
+    if (value === "crossed") {
+      btn.className = "color-swatch cross-swatch";
+      btn.title = "Mark cell as empty";
+      btn.setAttribute("aria-label", "Mark cell as empty");
+    } else {
+      btn.className = "color-swatch";
+      btn.style.backgroundColor = value;
+      btn.title = value;
+      btn.setAttribute("aria-label", `Select color ${value}`);
+    }
+
+    if (value === activeColor) btn.classList.add("active");
+
+    btn.addEventListener("click", () => {
+      activeColor = value;
+      container.querySelectorAll(".color-swatch").forEach((b) => {
+        b.classList.toggle("active", b.dataset.color === value);
+      });
+    });
+
+    container.appendChild(btn);
+  });
+}
+
+/**
+ * Return the next state in the BW cycle: empty -> filled -> crossed -> empty.
  *
  * @param {string} current
  * @returns {string}
@@ -143,20 +214,46 @@ function nextState(current) {
 }
 
 /**
- * Set a cell to an explicit state.
+ * Return the next state for a color puzzle cell.
+ *
+ * In cross mode (activeColor === "crossed"):
+ *   crossed -> empty, anything else -> crossed
+ * In color mode:
+ *   activeColor -> empty, anything else -> activeColor
+ *
+ * @param {string} current
+ * @returns {string}
+ */
+function nextColorState(current) {
+  if (activeColor === "crossed") {
+    return current === "crossed" ? "empty" : "crossed";
+  }
+  if (current === activeColor) return "empty";
+  return activeColor || "empty";
+}
+
+/**
+ * Set a cell to an explicit state, updating inline style for hex colors.
  *
  * @param {HTMLTableCellElement} cell
- * @param {string} state
+ * @param {string} state  "empty" | "filled" | "crossed" | "#rrggbb"
  */
 function applyState(cell, state) {
   cell.dataset.state = state;
+  if (state.startsWith("#")) {
+    cell.style.backgroundColor = state;
+  } else {
+    cell.style.backgroundColor = "";
+  }
 }
 
 /**
  * Read the current user grid state from the DOM.
+ * For BW puzzles returns boolean[][].
+ * For color puzzles returns (string|null)[][] where null means empty/crossed.
  *
- * @param {Object} puzzle - { width, height }
- * @returns {boolean[][]} - true where user has filled a cell
+ * @param {Object} puzzle - { width, height, is_color }
+ * @returns {boolean[][] | (string|null)[][]}
  */
 function readUserGrid(puzzle) {
   const grid = [];
@@ -166,7 +263,12 @@ function readUserGrid(puzzle) {
       const cell = document.querySelector(
         `.puzzle-cell[data-row="${row}"][data-col="${col}"]`
       );
-      rowData.push(cell ? cell.dataset.state === "filled" : false);
+      const state = cell ? cell.dataset.state : "empty";
+      if (puzzle.is_color) {
+        rowData.push(state.startsWith("#") ? state : null);
+      } else {
+        rowData.push(state === "filled");
+      }
     }
     grid.push(rowData);
   }
@@ -174,7 +276,7 @@ function readUserGrid(puzzle) {
 }
 
 /**
- * Compute run-length encoding of filled cells in a line.
+ * Compute run-length encoding of filled cells in a BW line.
  * Returns [0] for an all-empty line, matching nonogram convention.
  *
  * @param {boolean[]} cells
@@ -195,20 +297,75 @@ function computeLineRLE(cells) {
   return runs.length === 0 ? [0] : runs;
 }
 
+/**
+ * Compute color run-length encoding for a color line.
+ * Groups consecutive cells of the same hex color; null/empty cells break runs.
+ * Returns [{count: 0, color: ""}] for all-empty lines.
+ *
+ * @param {(string|null)[]} cells  - null means empty/crossed, string means hex color
+ * @returns {{count: number, color: string}[]}
+ */
+function computeColorLineRLE(cells) {
+  const runs = [];
+  let currentColor = null;
+  let count = 0;
+
+  for (const cell of cells) {
+    const color = cell && cell.startsWith("#") ? cell : null;
+    if (color !== null) {
+      if (color === currentColor) {
+        count++;
+      } else {
+        if (currentColor !== null) runs.push({ count, color: currentColor });
+        currentColor = color;
+        count = 1;
+      }
+    } else {
+      if (currentColor !== null) {
+        runs.push({ count, color: currentColor });
+        currentColor = null;
+        count = 0;
+      }
+    }
+  }
+  if (currentColor !== null) runs.push({ count, color: currentColor });
+  return runs.length === 0 ? [{ count: 0, color: "" }] : runs;
+}
+
 function arraysEqual(a, b) {
   return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+function colorRunsEqual(a, b) {
+  return (
+    a.length === b.length &&
+    a.every((v, i) => v.count === b[i].count && v.color === b[i].color)
+  );
+}
+
+/**
+ * Return a contrasting text color (dark or light) for a given hex background.
+ *
+ * @param {string} hex  - e.g. "#ff0000"
+ * @returns {string}    - "#1a1a1a" or "#ffffff"
+ */
+function contrastColor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? "#1a1a1a" : "#ffffff";
 }
 
 /**
  * Check every row and column for completion and update the DOM accordingly.
  *
- * A line is "complete" when its filled cells produce the same run-length
- * encoding as its hint — regardless of whether the fill is correct. When
- * complete: remaining empty cells are auto-crossed and the hint is greyed.
- * Auto-crossed cells are tracked via data-auto so they can be cleared and
- * recomputed on the next user action.
+ * A line is "complete" when its run-length encoding matches its hint (for BW:
+ * same counts; for color: same counts and colors). When complete, remaining
+ * empty cells are auto-crossed and the hint is greyed via .hint-done.
+ * Auto-crossed cells carry data-auto="true" so they reset on the next action.
  *
- * @param {Object} puzzle - { width, height, row_hints, col_hints }
+ * @param {Object} puzzle - { width, height, row_hints, col_hints, is_color }
  */
 function checkLineCompletion(puzzle) {
   // Clear previous auto state so we recompute from scratch each time.
@@ -220,9 +377,14 @@ function checkLineCompletion(puzzle) {
     td.classList.remove("hint-done");
   });
 
-  // Check rows then columns. Running rows first means any cells auto-crossed
-  // by a completed row are already "crossed" (not "filled") when the column
-  // check runs, giving correct column RLEs without a second pass.
+  if (puzzle.is_color) {
+    _checkColorLineCompletion(puzzle);
+  } else {
+    _checkBwLineCompletion(puzzle);
+  }
+}
+
+function _checkBwLineCompletion(puzzle) {
   for (let row = 0; row < puzzle.height; row++) {
     const cells = [];
     for (let col = 0; col < puzzle.width; col++) {
@@ -256,6 +418,58 @@ function checkLineCompletion(puzzle) {
       cells.push(cell ? cell.dataset.state === "filled" : false);
     }
     if (arraysEqual(computeLineRLE(cells), puzzle.col_hints[col])) {
+      document
+        .querySelectorAll(`.col-hint-cell[data-hint-col="${col}"]`)
+        .forEach((td) => td.classList.add("hint-done"));
+      for (let row = 0; row < puzzle.height; row++) {
+        const cell = document.querySelector(
+          `.puzzle-cell[data-row="${row}"][data-col="${col}"]`
+        );
+        if (cell && cell.dataset.state === "empty") {
+          applyState(cell, "crossed");
+          cell.dataset.auto = "true";
+        }
+      }
+    }
+  }
+}
+
+function _checkColorLineCompletion(puzzle) {
+  for (let row = 0; row < puzzle.height; row++) {
+    const cells = [];
+    for (let col = 0; col < puzzle.width; col++) {
+      const cell = document.querySelector(
+        `.puzzle-cell[data-row="${row}"][data-col="${col}"]`
+      );
+      const state = cell ? cell.dataset.state : "empty";
+      cells.push(state.startsWith("#") ? state : null);
+    }
+    if (colorRunsEqual(computeColorLineRLE(cells), puzzle.row_hints[row])) {
+      document
+        .querySelectorAll(`.row-hint-cell[data-hint-row="${row}"]`)
+        .forEach((td) => td.classList.add("hint-done"));
+      for (let col = 0; col < puzzle.width; col++) {
+        const cell = document.querySelector(
+          `.puzzle-cell[data-row="${row}"][data-col="${col}"]`
+        );
+        if (cell && cell.dataset.state === "empty") {
+          applyState(cell, "crossed");
+          cell.dataset.auto = "true";
+        }
+      }
+    }
+  }
+
+  for (let col = 0; col < puzzle.width; col++) {
+    const cells = [];
+    for (let row = 0; row < puzzle.height; row++) {
+      const cell = document.querySelector(
+        `.puzzle-cell[data-row="${row}"][data-col="${col}"]`
+      );
+      const state = cell ? cell.dataset.state : "empty";
+      cells.push(state.startsWith("#") ? state : null);
+    }
+    if (colorRunsEqual(computeColorLineRLE(cells), puzzle.col_hints[col])) {
       document
         .querySelectorAll(`.col-hint-cell[data-hint-col="${col}"]`)
         .forEach((td) => td.classList.add("hint-done"));

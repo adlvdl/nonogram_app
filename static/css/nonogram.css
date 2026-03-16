@@ -220,10 +220,86 @@ body {
   transform: translate(-50%, -50%) rotate(-45deg);
 }
 
-/* Completed row/column hint — greyed and struck through */
+/* Completed row/column hint — struck through and dimmed */
 .hint-done .hint-number {
-  color: #bbb;
   text-decoration: line-through;
+  opacity: 0.4;
+}
+
+/* ── Color palette ── */
+
+.color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+}
+
+.color-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.color-swatch.active {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1a1a1a;
+}
+
+/* Cross/eraser swatch — shows an X mark */
+.color-swatch.cross-swatch {
+  background-color: #f8f8f8 !important;
+  border-color: #bbb;
+  position: relative;
+}
+
+.color-swatch.cross-swatch::before,
+.color-swatch.cross-swatch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 55%;
+  height: 2px;
+  background: #999;
+  border-radius: 1px;
+}
+
+.color-swatch.cross-swatch::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.color-swatch.cross-swatch::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.color-swatch.cross-swatch.active {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1a1a1a;
+}
+
+.color-swatch.cross-swatch.active::before,
+.color-swatch.cross-swatch.active::after {
+  background: #1a1a1a;
+}
+
+/* ── Color hint chips ── */
+
+.hint-number {
+  display: inline-block;
+  border-radius: 3px;
+  padding: 1px 4px;
 }
 
 /* Corner spacer */

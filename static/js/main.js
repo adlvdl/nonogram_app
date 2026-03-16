@@ -29,6 +29,13 @@
     .then((puzzle) => {
       document.getElementById("puzzle-loading").style.display = "none";
 
+      // Show colour palette for colour puzzles.
+      const paletteEl = document.getElementById("color-palette");
+      if (puzzle.is_color) {
+        paletteEl.style.display = "flex";
+        buildColorPalette(puzzle.colors, paletteEl);
+      }
+
       function onStateChange() {
         const userGrid = readUserGrid(puzzle);
         if (checkSolution(puzzle.solution, userGrid)) {
@@ -50,6 +57,7 @@
       // Dismiss popup and reset grid on "Reset puzzle"
       document.getElementById("btn-play-again").addEventListener("click", () => {
         hideCongratsPopup();
+        if (puzzle.is_color) buildColorPalette(puzzle.colors, paletteEl);
         buildGrid(puzzle, onStateChange);
         startTimer();
       });
